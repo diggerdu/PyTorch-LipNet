@@ -11,8 +11,11 @@ cudnn.benchmark = True
 
 opt = TrainOptions().parse()
 ROOT = '/data1'
-#testDataLoader = CreateDataLoader(opt, {'mode':'Test', 'labelFn':'in5008.txt', 'rootPath':ROOT, 'subDir':'eval'})
-testDataLoader = CreateDataLoader(opt, {'mode':'Train', 'labelFn':'in5008.txt', 'rootPath':ROOT, 'subDir':'train'})
+testDataLoader = CreateDataLoader(opt, {'mode':'Test', 
+					'labelFn':'in5008.txt', 
+					'manifestFn':'/home/caspardu/data/LipNetData/manifestFiles'}
+				 )
+#testDataLoader = CreateDataLoader(opt, {'mode':'Train', 'labelFn':'in5008.txt', 'manifestFn':''})
  
 
 testDataset = testDataLoader.load_data()

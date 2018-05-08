@@ -10,9 +10,8 @@ from tqdm import tqdm
 cudnn.benchmark = True
 
 opt = TrainOptions().parse()
-ROOT = '/data1'
-data_loader = CreateDataLoader(opt, {'mode':'Train', 'labelFn':'in5008.txt', 'rootPath':ROOT, 'subDir':'train'})
-testDataLoader = CreateDataLoader(opt, {'mode':'Test', 'labelFn':'in5008.txt', 'rootPath':ROOT, 'subDir':'eval'})
+data_loader = CreateDataLoader(opt, {'mode':'Train', 'manifestFn':'/home/caspardu/data/LipNetData/manifestFiles/train.list','labelFn':'/home/caspardu/data/LipNetData/manifestFiles/label.txt'})
+testDataLoader = CreateDataLoader(opt, {'mode':'Test', 'manifestFn':'/home/caspardu/data/LipNetData/manifestFiles/test.list','labelFn':'/home/caspardu/data/LipNetData/manifestFiles/label.txt'})
 
 dataset = data_loader.load_data()
 testDataset = testDataLoader.load_data()
@@ -34,7 +33,7 @@ for epoch in range(initEpoch, opt.niter):
     model.annealLR(loss)
     model.epoch += 1
     print('epoch {}, loss is {}'.format(epoch, loss))
-    if epoch % 9 == 5 or True:
+    if epoch % 9 == 5:
         flag = False
         if loss < .5:
             flag = True
@@ -42,8 +41,9 @@ for epoch in range(initEpoch, opt.niter):
         totalCer = list()
         for i, data in tqdm(enumerate(testDataset), total=len(testDataset)):
             model.set_input(data)
-            totalWer.append(model.test(flag)['wer'])
-            totalCer.append(model.test(flag)['cer'])
+            results = model.test()
+            totalWer.append(results['wer'])
+            totalCer.append(results['cer'])
         
         cer = sum(totalCer) * 100 / len(totalCer)
         wer = sum(totalWer) * 100 / len(totalWer)

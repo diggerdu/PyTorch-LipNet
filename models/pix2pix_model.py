@@ -121,7 +121,7 @@ class Pix2PixModel(BaseModel):
         target_strings = self.greedyDecoder.convert_to_strings(split_targets)
         wer, cer = 0, 0
 
-        flag = open('/home/dxj/oracle', 'r').read().strip()
+        flag = open('/home/caspardu/oracle', 'r').read().strip()
         if flag == 'd': 
             __import__('ipdb').set_trace()
 
