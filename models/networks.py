@@ -160,7 +160,8 @@ class BatchRNN(nn.Module):
         if self.batch_norm is not None:
             x = self.batch_norm(x)
         self.rnn.flatten_parameters()
-        x, _ = self.rnn(x)
+        x, hidden = self.rnn(x)
+        hidden.detach()
         #if self.bidirectional:
         #    x = x.view(x.size(0), x.size(1), 2, -1).sum(2).view(x.size(0), x.size(1), -1)  # (TxNxH*2) -> (TxNxH) by sum
         return x
@@ -189,21 +190,21 @@ class AuFCN(nn.Module):
         super(AuFCN, self).__init__()
         modList = list()
         modList = [
-                nn.Conv3d(3, 32, kernel_size=(3, 5, 5), stride=(1, 2, 2), padding=(1, 2, 2)),
+                nn.Conv3d(3, 32, kernel_size=(3, 5, 5), stride=(2, 2, 2), padding=(1, 2, 2)),
                 nn.BatchNorm3d(32),
                 nn.ReLU(inplace=True),
                 #nn.Dropout3d(),
-                nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2)),
+                nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(2, 2, 2)),
                 nn.Conv3d(32, 64, kernel_size=(3, 5, 5), stride=(1, 1, 1), padding=(1, 2, 2)),
                 nn.BatchNorm3d(64),
                 nn.ReLU(inplace=True),
                 #nn.Dropout3d(),
-                nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2)),
+                nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(2, 2, 2)),
                 nn.Conv3d(64, 96, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1)),
                 nn.BatchNorm3d(96),
                 nn.ReLU(inplace=True),
                 #nn.Dropout3d(),
-                nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2))
+                nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(2, 2, 2))
                 ]
         #self.conv = nn.ModuleList(modList)
         self.conv = nn.Sequential(*modList)
@@ -211,8 +212,8 @@ class AuFCN(nn.Module):
         ## TODO ADD OPTIONS
 
         rnnList = [
-                BatchRNN(input_size=1728, hidden_size=256, bidirectional=True, batch_norm=False),
-                BatchRNN(input_size=512, hidden_size=256, bidirectional=True, batch_norm=False),
+                BatchRNN(input_size=1728, hidden_size=256, bidirectional=True, batch_norm=True),
+                BatchRNN(input_size=512, hidden_size=256, bidirectional=True, batch_norm=True),
                 ]
         self.rnn = nn.Sequential(*rnnList)
         fcBlock = nn.Sequential(

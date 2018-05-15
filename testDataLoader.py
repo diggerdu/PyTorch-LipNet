@@ -10,8 +10,8 @@ from tqdm import tqdm
 cudnn.benchmark = True
 
 opt = TrainOptions().parse()
-data_loader = CreateDataLoader(opt, {'mode':'Train', 'manifestFn':'/home/caspardu/data/LipNetData/manifestFiles/train.list','labelFn':'/home/caspardu/data/LipNetData/manifestFiles/label.txt'})
-testDataLoader = CreateDataLoader(opt, {'mode':'Test', 'manifestFn':'/home/caspardu/data/LipNetData/manifestFiles/test.list','labelFn':'/home/caspardu/data/LipNetData/manifestFiles/label.txt'})
+data_loader = CreateDataLoader(opt, {'mode':'Train', 'manifestFn':'/home/caspardu/data/LipNetData/manifestFiles/wellDone_train.list','labelFn':'/home/caspardu/data/LipNetData/manifestFiles/label.txt'})
+testDataLoader = CreateDataLoader(opt, {'mode':'Test', 'manifestFn':'/home/caspardu/data/LipNetData/manifestFiles/wellDone_test.list','labelFn':'/home/caspardu/data/LipNetData/manifestFiles/label.txt'})
 
 dataset = data_loader.load_data()
 testDataset = testDataLoader.load_data()
@@ -20,6 +20,9 @@ print('#training images = %d' % dataset_size)
 print('#testing images = %d' % len(testDataLoader))
 
 model = create_model(opt)
+from torchsummary import summary
+summary(model.netG, input_size=(3,150, 100, 50))
+
 
 initEpoch = model.epoch + 1
 for epoch in range(initEpoch, opt.niter):
@@ -33,7 +36,7 @@ for epoch in range(initEpoch, opt.niter):
     model.annealLR(loss)
     model.epoch += 1
     print('epoch {}, loss is {}'.format(epoch, loss))
-    if epoch % 9 == 5:
+    if epoch % 5 == 2:
         flag = False
         if loss < .5:
             flag = True

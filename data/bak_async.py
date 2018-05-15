@@ -11,12 +11,12 @@ from skimage.transform import resize
 import multiprocessing
 import h5py
 
+import soundfile as sf
 from data.audio_folder import make_dataset
 from data.base_dataset import BaseDataset
 from torch.utils.data.sampler import Sampler
 from torch.utils.data import DataLoader
 import pdb
-import ipdb
 import sys
 
 class fdb(pdb.Pdb):
@@ -31,8 +31,6 @@ class fdb(pdb.Pdb):
             pdb.Pdb.interaction(self, *args, **kwargs)
         finally:
             sys.stdin = _stdin
-
-
 def writeToDisk(args):
     hf = h5py.File(args[-1], 'a')
     fn = args[-2].split('/')[-1]
@@ -49,23 +47,22 @@ class AudioDataset(BaseDataset):
 
         labelStr = '_0123456789'
         self.labels_map = dict(zip(labelStr, range(len(labelStr))))
-        self.labels_map['4'] = 2
-        self.labels_map['7'] = 2
-        self.labels_map['8'] = 3
-        self.labels_map['9'] = 7
         self.dumpPath = opt.dumpPath + '_' + self.mode + '.h5'
         self.loadData()
 
     def __getitem__(self, index):
         sampleInfo = self.fileInfo[index] 
-        data, label, imagePath = self.loadSample(sampleInfo)
+        fn = sampleInfo[0].split('/')[-1]
+        hf = h5py.File(self.dumpPath, 'r')
+        data = hf.get('{}_data'.format(fn)).value
+        label = hf.get('{}_label'.format(fn)).value.tolist()
         assert data.shape[1] == 50
         assert data.shape[2] == 100
         return {
             ## channels x time x h x w
             'data': data.transpose((3, 0, 1, 2)) / 255.,
             'label': label,
-            'path': imagePath
+            'path': self.fileInfo[index]
         }
 
     def __len__(self):
@@ -85,36 +82,60 @@ class AudioDataset(BaseDataset):
         return "AudioDataset"
     
     def loadData(self):
-        labelDict = dict()
-        for entry in open(self.labelFn).read().splitlines():
+        #ROOT = "/home/dxj/corpus/GRID"
+        #ROOT = "/data2/dxj/smallSet"
+        if os.path.isfile(self.dumpPath): 
+            hf = h5py.File(self.dumpPath, 'r')
+            self.fileInfo = eval(hf.get('fileList').value)
+            hf.close()
+        else:
             try:
-                idd, label = entry.split('\t')
+                os.remove(self.dumpPath)
             except:
-                print(entry)
-                continue
-            labelDict.update({idd: label})
+                pass
+
+            ROOT = self.rootPath
+
+            hf = h5py.File(self.dumpPath, 'w')
+            labelDict = dict()
+            for entry in open(os.path.join(ROOT, self.labelFn)).readlines():
+                idd, label = entry.split('\t')
+                labelDict.update({idd: label})
 
 
-        fileInfo = list()
-        for imagePath in open(self.manifestFn, 'r').read().splitlines():
-            sampleFn = imagePath.split('/')[-1]
-            label = labelDict.get(sampleFn.split('-')[0])
-            if label is None:
-                continue
-            if 'N' in label:
-                continue
-            label = ''.join(filter(lambda c:c.isdigit(), label))
-            if len(label) != 4:
-                continue
-            if label is not None and len(os.listdir(imagePath)) < 149:
-                fileInfo.append((imagePath, label))
+            fileInfo = list()
 
-        self.fileInfo = fileInfo[::]
+            mouthDir = self.subDir
+            for sampleFn in os.listdir(os.path.join(ROOT, mouthDir)):
+                imagePath = os.path.join(ROOT, mouthDir, sampleFn)
+                label = labelDict.get(sampleFn.split('-')[0])
+                if label is None:
+                    continue
+                if 'N' in label:
+                    continue
+                label = ''.join(filter(lambda c:c.isdigit(), label))
+                if len(label) != 4:
+                    continue
+                if label is not None and len(os.listdir(imagePath)) < 149:
+                    fileInfo.append((imagePath, label))
+
+            self.fileInfo = fileInfo[::]
+            hf.create_dataset('fileList', data=repr(self.fileInfo))   
+            hf.close()
+
+
+            print('loading, {} files'.format(len(self.fileInfo))) 
+            pool = multiprocessing.Pool(processes=128)
+
+            for sampleInfo in tqdm(self.fileInfo):
+                pool.apply_async(self.loadSample, (sampleInfo,), callback=writeToDisk)
+            pool.close()
+            pool.join()
 
     def loadSample(self, sampleInfo):
         assert len(sampleInfo) == 2
         imagePath, label = sampleInfo 
-        return self.parseImage(imagePath), self.parseTranscript(label), imagePath
+        return self.parseImage(imagePath), self.parseTranscript(label), imagePath, self.dumpPath
             
 
     def parseTranscript(self, label):
@@ -166,10 +187,11 @@ class AudioDataLoader(DataLoader):
 def _collate_fn(batch):
     def func(p):
         return p['data'].shape[1]
+    #fdb().set_trace()
     longestSample = max(batch, key=func)['data']
     nChannel, nTimeSteps, height, width = longestSample.shape
     ## ugly workaround
-    #nTimeSteps = len(longestSample)
+    nTimeSteps = 150
     minibatchSize = len(batch)
 
     ### TODO:ARGIFY
@@ -178,9 +200,6 @@ def _collate_fn(batch):
     target_sizes = torch.IntTensor(minibatchSize)
     targets = []
     fnList = list()
-
-
-    #fdb().set_trace()
     for x in range(minibatchSize):
         sample = batch[x]
         data = sample['data']

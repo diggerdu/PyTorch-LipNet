@@ -70,9 +70,9 @@ class Pix2PixModel(BaseModel):
                        self.netG.parameters()),
                         lr=opt.lr)
 
-            self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer_G, 'min', factor=0.25, patience=13, verbose=True)
+            self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer_G, 'min', factor=0.25, patience=35, verbose=True)
 
-            self.decoder = BeamCTCDecoder('_0123456789', num_processes=196, beam_width=200, cutoff_top_n=400)
+            self.decoder = BeamCTCDecoder('_0123456789', num_processes=196, beam_width=100, cutoff_top_n=4000)
             ##TODO
             self.greedyDecoder = GreedyDecoder('_0123456789')
 
@@ -108,7 +108,6 @@ class Pix2PixModel(BaseModel):
         sizes = self.inputPercentages.mul_(int(seqLen)).int()
         split_targets = []
         offset = 0
-
 
         for size in self.labelSize:
             try:
@@ -180,6 +179,7 @@ class Pix2PixModel(BaseModel):
         self.optimizer_G.zero_grad()
         self.backward_G()
         self.optimizer_G.step()
+
     def annealLR(self, loss):
         self.scheduler.step(loss)
 
