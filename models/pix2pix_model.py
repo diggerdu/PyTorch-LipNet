@@ -62,7 +62,7 @@ class Pix2PixModel(BaseModel):
                 self.optimizer_G = torch.optim.Adam(
                        self.netG.parameters(),
                         lr=opt.lr,
-                        betas=(0.9, 0.999))
+                        betas=(0.9, 0.999), weight_decay=self.opt.weightDecay)
 
             if self.opt.optimizer == 'sgd':
                 self.optimizer_G = torch.optim.SGD(
@@ -165,7 +165,10 @@ class Pix2PixModel(BaseModel):
         labelSize = Variable(self.labelSize, requires_grad=False)
         sizes = Variable(self.inputPercentages.mul_(int(seqLen)).int(), requires_grad=False)
         self.loss_G = self.criterion(prob, labels, sizes, labelSize)
-        self.loss_G.backward()
+        if not np.isinf(self.loss_G.cpu().data.numpy()):
+            self.loss_G.backward()
+        
+            
 
     def optimize_parameters(self):
         self.netG.train()

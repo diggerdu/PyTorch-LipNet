@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.nn.modules import Module
+import os
 import numpy as np
 from collections import OrderedDict
 from . import densenet_efficient as dens
@@ -180,75 +181,75 @@ class AuFCNWrapper(nn.Module):
         else:
             return self.model(input)
 
+try:
+    exec(open(os.path.join(os.getenv("expPath"), 'networks_AuFCN.py')).read())
+except:
+    __import__('ipdb').set_trace()
+    class AuFCN(nn.Module):
+        def __init__(self, numClasses=11):
+            super(AuFCN, self).__init__()
+            modList = list()
+            modList = [
+                    nn.Conv3d(3, 32, kernel_size=(3, 5, 5), stride=(2, 2, 2), padding=(1, 2, 2)),
+                    nn.BatchNorm3d(32),
+                    nn.ReLU(inplace=True),
+                    #nn.Dropout3d(),
+                    nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(2, 2, 2)),
+                    nn.Conv3d(32, 64, kernel_size=(3, 5, 5), stride=(1, 1, 1), padding=(1, 2, 2)),
+                    nn.BatchNorm3d(64),
+                    nn.ReLU(inplace=True),
+                    #nn.Dropout3d(),
+                    nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(2, 2, 2)),
+                    nn.Conv3d(64, 96, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1)),
+                    nn.BatchNorm3d(96),
+                    nn.ReLU(inplace=True),
+                    #nn.Dropout3d(),
+                    nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(2, 2, 2))
+                    ]
+            #self.conv = nn.ModuleList(modList)
+            self.conv = nn.Sequential(*modList)
 
-# TODO robust
-# TODO requires gradient
-# TODO assert AC == 0
+            ## TODO ADD OPTIONS
 
-class AuFCN(nn.Module):
-    def __init__(self, numClasses=11):
-        super(AuFCN, self).__init__()
-        modList = list()
-        modList = [
-                nn.Conv3d(3, 32, kernel_size=(3, 5, 5), stride=(2, 2, 2), padding=(1, 2, 2)),
-                nn.BatchNorm3d(32),
-                nn.ReLU(inplace=True),
-                #nn.Dropout3d(),
-                nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(2, 2, 2)),
-                nn.Conv3d(32, 64, kernel_size=(3, 5, 5), stride=(1, 1, 1), padding=(1, 2, 2)),
-                nn.BatchNorm3d(64),
-                nn.ReLU(inplace=True),
-                #nn.Dropout3d(),
-                nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(2, 2, 2)),
-                nn.Conv3d(64, 96, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1)),
-                nn.BatchNorm3d(96),
-                nn.ReLU(inplace=True),
-                #nn.Dropout3d(),
-                nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(2, 2, 2))
-                ]
-        #self.conv = nn.ModuleList(modList)
-        self.conv = nn.Sequential(*modList)
-
-        ## TODO ADD OPTIONS
-
-        rnnList = [
-                BatchRNN(input_size=1728, hidden_size=256, bidirectional=True, batch_norm=True),
-                BatchRNN(input_size=512, hidden_size=256, bidirectional=True, batch_norm=True),
-                ]
-        self.rnn = nn.Sequential(*rnnList)
-        fcBlock = nn.Sequential(
-                nn.BatchNorm1d(512),
-                nn.Linear(512, numClasses, bias=False)
-                )
-        self.dense = nn.Sequential(
-                SequenceWise(fcBlock)
-                )
-        self.inference_softmax = InferenceBatchSoftmax()
+            rnnList = [
+                    BatchRNN(input_size=1728, hidden_size=256, bidirectional=True, batch_norm=True),
+                    BatchRNN(input_size=512, hidden_size=256, bidirectional=True, batch_norm=True),
+                    ]
+            self.rnn = nn.Sequential(*rnnList)
+            fcBlock = nn.Sequential(
+                    #nn.BatchNorm1d(512),
+                    nn.Dropout(),
+                    nn.Linear(512, numClasses, bias=False)
+                    )
+            self.dense = nn.Sequential(
+                    SequenceWise(fcBlock)
+                    )
+            self.inference_softmax = InferenceBatchSoftmax()
 
 
 
-    def forward(self, sample):
-        ## sample shape Batch x Channel x Time x H x w
-        ## output of conv shape: Batch x Channel x time x H x w
-        output = self.conv(sample)
-        ## flatten: batch x time x 1728
-        output = output.view(output.size(0), output.size(2), -1)
+        def forward(self, sample):
+            ## sample shape Batch x Channel x Time x H x w
+            ## output of conv shape: Batch x Channel x time x H x w
+            output = self.conv(sample)
+            ## flatten: batch x time x 1728
+            output = output.view(output.size(0), output.size(2), -1)
 
-        ## transpose time x batch x 1728
-        output = output.transpose(1, 0)
-        try:
-            assert output.size(-1) == 1728
-        except:
-            __import__('ipdb')
-        output = self.rnn(output)
-        ## output of rnn time x batch x 512
-        output = self.dense(output)
-        ## output of dense time x batch x nclasses
-        output = output.transpose(1, 0)
-        ## output batch x time x nclasses
-        output = self.inference_softmax(output)
+            ## transpose time x batch x 1728
+            output = output.transpose(1, 0)
+            try:
+                assert output.size(-1) == 1728
+            except:
+                __import__('ipdb')
+            output = self.rnn(output)
+            ## output of rnn time x batch x 512
+            output = self.dense(output)
+            ## output of dense time x batch x nclasses
+            output = output.transpose(1, 0)
+            ## output batch x time x nclasses
+            output = self.inference_softmax(output)
 
-        return output
+            return output
 
 
 class Tanh_rescale(Module):

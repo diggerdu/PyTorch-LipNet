@@ -54,5 +54,23 @@ for epoch in range(initEpoch, opt.niter):
         print('epoch {}, wer is {}, cer is {}'.format(epoch, wer, cer))
         print('############################')
         model.save()
+    if epoch % 9 == 6:
+        flag = False
+        if loss < .5:
+            flag = True
+        totalWer = list()
+        totalCer = list()
+        for i, data in tqdm(enumerate(dataset), total=len(dataset)):
+            model.set_input(data)
+            results = model.test()
+            totalWer.append(results['wer'])
+            totalCer.append(results['cer'])
+        
+        cer = sum(totalCer) * 100 / len(totalCer)
+        wer = sum(totalWer) * 100 / len(totalWer)
+        print('############################')
+        print('#####TrainingSet epoch {}, wer is {}, cer is {}'.format(epoch, wer, cer))
+        print('############################')
+        model.save()
 
-     
+    
