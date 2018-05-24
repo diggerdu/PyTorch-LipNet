@@ -1,0 +1,4 @@
+try:
+     exec(open(os.path.join(os.getenv("expPath"), 'networks_AuFCN.py')).read())
+      except:
+           __import__('ipdb').set_trace()

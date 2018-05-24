@@ -9,6 +9,7 @@ from .base_model import BaseModel
 from . import networks
 from warpctc_pytorch import CTCLoss
 from .decoder import BeamCTCDecoder, GreedyDecoder
+from .adamw import AdamW
 
 def checkInterVarGrad(grad):
     import numpy as np
@@ -63,6 +64,15 @@ class Pix2PixModel(BaseModel):
                        self.netG.parameters(),
                         lr=opt.lr,
                         betas=(0.9, 0.999), weight_decay=self.opt.weightDecay)
+
+
+            if self.opt.optimizer == 'AdamW':
+                self.optimizer_G = AdamW(
+                       self.netG.parameters(),
+                        lr=opt.lr,
+                        betas=(0.9, 0.999), weight_decay=self.opt.weightDecay)
+
+
 
             if self.opt.optimizer == 'sgd':
                 self.optimizer_G = torch.optim.SGD(
