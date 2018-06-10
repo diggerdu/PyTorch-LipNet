@@ -51,8 +51,8 @@ class AudioDataset(BaseDataset):
         self.labels_map = dict(zip(labelStr, range(len(labelStr))))
         self.labels_map['4'] = 2
         self.labels_map['7'] = 2
-        self.labels_map['8'] = 3
-        self.labels_map['9'] = 7
+        #self.labels_map['8'] = 3
+        #self.labels_map['9'] = 7
         self.dumpPath = opt.dumpPath + '_' + self.mode + '.h5'
         self.loadData()
 
@@ -99,7 +99,7 @@ class AudioDataset(BaseDataset):
         for imagePath in open(self.manifestFn, 'r').read().splitlines():
             sampleFn = imagePath.split('/')[-1]
             label = labelDict.get(sampleFn.split('-')[0])
-            if label is None:
+            if label is None or len(label) == 0:  
                 continue
             if 'N' in label:
                 continue

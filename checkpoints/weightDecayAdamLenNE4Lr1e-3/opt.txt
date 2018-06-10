@@ -1,6 +1,6 @@
 ------------ Options -------------
 activiation: sigmoid
-batchSize: 96
+batchSize: 64
 beta1: 0.5
 checkpoints_dir: ./checkpoints
 continue_train: False
@@ -11,7 +11,7 @@ display_single_pane_ncols: 0
 display_winsize: 256
 dumpPath: /data1/dumpFile/prominate
 gan_loss: False
-gpu_ids: [0, 1, 2, 3]
+gpu_ids: [0, 1]
 identity: 0.0
 isTrain: True
 lambda_A: 100.0
@@ -21,7 +21,7 @@ max_dataset_size: inf
 model: pix2pix
 nThreads: 24
 n_layers_D: 3
-name: weightDecayAdam1e-3
+name: weightDecayAdamLenNE4Lr1e-3
 ndf: 64
 ngf: 32
 niter: 10000

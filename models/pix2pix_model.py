@@ -175,8 +175,13 @@ class Pix2PixModel(BaseModel):
         labelSize = Variable(self.labelSize, requires_grad=False)
         sizes = Variable(self.inputPercentages.mul_(int(seqLen)).int(), requires_grad=False)
         self.loss_G = self.criterion(prob, labels, sizes, labelSize)
+
+
         if not np.isinf(self.loss_G.cpu().data.numpy()):
             self.loss_G.backward()
+        else:
+            #__import__('ipdb').set_trace()
+            pass
         
             
 

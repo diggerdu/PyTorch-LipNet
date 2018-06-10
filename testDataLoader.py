@@ -10,8 +10,8 @@ from tqdm import tqdm
 cudnn.benchmark = True
 
 opt = TrainOptions().parse()
-data_loader = CreateDataLoader(opt, {'mode':'Train', 'manifestFn':'/home/caspardu/data/LipNetData/manifestFiles/wellDone_train.list','labelFn':'/home/caspardu/data/LipNetData/manifestFiles/label.txt'})
-testDataLoader = CreateDataLoader(opt, {'mode':'Test', 'manifestFn':'/home/caspardu/data/LipNetData/manifestFiles/wellDone_test.list','labelFn':'/home/caspardu/data/LipNetData/manifestFiles/label.txt'})
+data_loader = CreateDataLoader(opt, {'mode':'Train', 'manifestFn':'/home/caspardu/data/LipReadProject/LipNetData/manifestFiles/wellDone_train.list','labelFn':'/home/caspardu/data/LipReadProject/LipNetData/manifestFiles/label.txt'})
+testDataLoader = CreateDataLoader(opt, {'mode':'Test', 'manifestFn':'/home/caspardu/data/LipReadProject/LipNetData/manifestFiles/wellDone_test.list','labelFn':'/home/caspardu/data/LipReadProject/LipNetData/manifestFiles/label.txt'})
 
 dataset = data_loader.load_data()
 testDataset = testDataLoader.load_data()
@@ -31,7 +31,9 @@ for epoch in range(initEpoch, opt.niter):
     #for i, data in enumerate(dataset):
         model.set_input(data)
         model.optimize_parameters()
-        lossList.append(model.get_current_errors()['G_LOSS'])
+        currentLoss = model.get_current_errors()['G_LOSS']
+        if not np.isinf(currentLoss):
+            lossList.append(currentLoss)
     loss = sum(lossList) / len(lossList)
     model.annealLR(loss)
     model.epoch += 1

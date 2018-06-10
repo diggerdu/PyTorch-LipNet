@@ -17,7 +17,7 @@ class AuFCN(nn.Module):
                 nn.BatchNorm3d(256),
                 nn.ReLU(inplace=True),
                 nn.Dropout3d(),
-                nn.MaxPool3d(kernel_size=(1, 2, 1), stride=(2, 2, 2))
+                nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(2, 2, 2))
                 ]
         #self.conv = nn.ModuleList(modList)
         self.conv = nn.Sequential(*modList)
