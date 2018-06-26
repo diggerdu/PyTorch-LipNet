@@ -16,7 +16,7 @@ identity: 0.0
 isTrain: True
 lambda_A: 100.0
 lambda_B: 10.0
-lr: 0.001
+lr: 0.0001
 max_dataset_size: inf
 model: pix2pix
 nThreads: 24

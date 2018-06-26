@@ -1,10 +1,12 @@
 import os.path
-from data.base_dataset import BaseDataset
-from data.audio_folder import make_dataset
-import librosa
-import soundfile as sf
-import numpy as np
 import random
+
+import librosa
+import numpy as np
+import soundfile as sf
+
+from data.audio_folder import make_dataset
+from data.base_dataset import BaseDataset
 
 
 class AudioDataset(BaseDataset):

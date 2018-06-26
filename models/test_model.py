@@ -1,9 +1,12 @@
-from torch.autograd import Variable
 from collections import OrderedDict
-import util.util as util
-from .base_model import BaseModel
-from . import networks
+
 import torch
+from torch.autograd import Variable
+
+import util.util as util
+
+from . import networks
+from .base_model import BaseModel
 
 
 class TestModel(BaseModel):

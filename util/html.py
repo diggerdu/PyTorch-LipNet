@@ -1,6 +1,7 @@
+import os
+
 import dominate
 from dominate.tags import *
-import os
 
 
 class HTML:

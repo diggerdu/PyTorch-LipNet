@@ -1,11 +1,13 @@
+import sys
 import time
+
+import numpy as np
 import torch.backends.cudnn as cudnn
-from options.train_options import TrainOptions
+
 from data.data_loader import CreateDataLoader
 from models.models import create_model
+from options.train_options import TrainOptions
 from util.visualizer import Visualizer
-import sys
-import numpy as np
 
 cudnn.benchmark = True
 
@@ -35,4 +37,3 @@ for epoch in range(1, opt.niter + 1):
     if time.time() - embark_time > 60 * 6:
         model.save('latest')
         embark_time = time.time()
-

@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+
 import numpy as np
+import scipy.signal
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
 import torch.nn.functional as F
-import scipy.signal
+from torch.autograd import Variable
 
 
 def CalSNR(ref, sig):

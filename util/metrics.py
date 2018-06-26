@@ -9,8 +9,10 @@
     - required bandwidth estimation
 """
 from __future__ import division
-import sys, os
-from math import sqrt, pi, atan2, log, pow, cos, log, exp
+
+import os
+import sys
+from math import atan2, cos, exp, log, pi, pow, sqrt
 
 __all__ = 'SpeexMetric mos2r r2mos delay2id pesq2mos mos2pesq pesq'.split()
 
@@ -150,4 +152,3 @@ if __name__ == '__main__':
     #doctest.testmod(optionflags=doctest.ELLIPSIS)
     results = pesq("/home/diggerdu/manifestdestiny/Cranberry/checkpoints/babble-0db/clean.wav", "/home/diggerdu/manifestdestiny/Cranberry/checkpoints/babble-0db/enhance.wav", sample_rate=16000)
     print(results)
-

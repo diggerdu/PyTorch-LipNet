@@ -1,9 +1,11 @@
-import numpy as np
-import os
 import ntpath
+import os
 import time
-from . import util
-from . import html
+
+import numpy as np
+
+from . import html, util
+
 
 class Visualizer():
     def __init__(self, opt):

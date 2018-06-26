@@ -1,23 +1,21 @@
-import time
 import os
-from options.test_options import TestOptions
-from data.data_loader import CreateDataLoader
-from models.models import create_model
-from util.visualizer import Visualizer
-from util.audio_process import recovery_phase
+import time
+from pdb import set_trace as st
+
+import librosa
+# audio process
+import numpy as np
+import soundfile as sf
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
-from pdb import set_trace as st
+from data.data_loader import CreateDataLoader
+from models.models import create_model
+from options.test_options import TestOptions
 from util import html
-
-
-
-# audio process
-import numpy as np
-import librosa
-import soundfile as sf
+from util.audio_process import recovery_phase
+from util.visualizer import Visualizer
 
 
 def CalSNR(ref, sig):
@@ -86,4 +84,3 @@ noisePath = "/home/diggerdu/dataset/Large/babble/59899-robinhood76-00309crowd2-1
 #cleanPath = "/home/diggerdu/dataset/speech/14.wav"
 
 eval(model, cleanPath, noisePath, opt)
-

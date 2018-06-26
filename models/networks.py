@@ -1,13 +1,17 @@
+
+
+
+import os
+from collections import OrderedDict
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.nn.modules import Module
-import os
-import numpy as np
-from collections import OrderedDict
-from . import densenet_efficient as dens
-from . import time_frequence as tf
+
+from .SpeechModule import DeepSpeech
 
 ###############################################################################
 # Functions
@@ -47,11 +51,8 @@ def define_G(gpu_ids=[]):
     use_gpu = len(gpu_ids) > 0
     if use_gpu:
         assert (torch.cuda.is_available())
-    netG = torch.nn.DataParallel(AuFCN())
-    #netG = AuFCN()
-    #netG = AuFCNWrapper(gpu_ids=gpu_ids)
+    netG = torch.nn.DataParallel(MutualNet())
     if len(gpu_ids) > 0:
-        #netG.cuda(device=gpu_ids[0])
         netG.cuda(device=gpu_ids[0])
     netG.apply(weights_init)
     return netG
@@ -163,31 +164,97 @@ class BatchRNN(nn.Module):
         self.rnn.flatten_parameters()
         x, hidden = self.rnn(x)
         hidden.detach()
-        #if self.bidirectional:
-        #    x = x.view(x.size(0), x.size(1), 2, -1).sum(2).view(x.size(0), x.size(1), -1)  # (TxNxH*2) -> (TxNxH) by sum
+        if self.bidirectional:
+            x = x.view(x.size(0), x.size(1), 2, -1).sum(2).view(x.size(0), x.size(1), -1)  # (TxNxH*2) -> (TxNxH) by sum
         return x
 
-class AuFCNWrapper(nn.Module):
-    def __init__(self, numClasses=11, gpu_ids=[0,1]):
-        super(AuFCNWrapper, self).__init__()
-        self.gpu_ids = gpu_ids
-        self.model = AuFCN(numClasses)
 
-    def forward(self, input):
-        if self.gpu_ids and isinstance(input.data, torch.cuda.FloatTensor):
-            #output = nn.parallel.data_parallel(self.model, input, self.gpu_ids)
-            output = nn.parallel.data_parallel(self.model, input, self.gpu_ids)
-            return output
-        else:
-            return self.model(input)
+
+
+
+
+class MutualNet(nn.Module):
+    def __init__(self, opt=None):
+        super(MutualNet, self).__init__()
+        self.SpeechModule = DeepSpeech()
+        self.LipModule = LipModule()  
+    def forward(self, data):
+        pass
+
+
+
 
 try:
-    exec(open(os.path.join(os.getenv("expPath"), 'networks_AuFCN.py')).read())
+    exec(open(os.path.join(os.getenv("expPath"), 'networks_LipModule.py')).read())
 except:
-    __import__('ipdb').set_trace()
-    class AuFCN(nn.Module):
+    #__import__('ipdb').set_trace()
+    class LipModule(nn.Module):
+        def __init__(self):
+            super(LipModule, self).__init__()
+            modList = list()
+            modList = [
+                    nn.Conv3d(3, 32, kernel_size=(3, 5, 5), stride=(2, 2, 2), padding=(1, 2, 2)),
+                    nn.BatchNorm3d(32),
+                    nn.ReLU(inplace=True),
+                    #nn.Dropout3d(),
+                    nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(2, 2, 2)),
+                    nn.Conv3d(32, 64, kernel_size=(3, 5, 5), stride=(1, 1, 1), padding=(1, 2, 2)),
+                    nn.BatchNorm3d(64),
+                    nn.ReLU(inplace=True),
+                    #nn.Dropout3d(),
+                    nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(2, 2, 2)),
+                    nn.Conv3d(64, 96, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1)),
+                    nn.BatchNorm3d(96),
+                    nn.ReLU(inplace=True),
+                    #nn.Dropout3d(),
+                    nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(2, 2, 2))
+                    ]
+            #self.conv = nn.ModuleList(modList)
+            self.conv = nn.Sequential(*modList)
+
+            ## TODO ADD OPTIONS
+
+            rnnList = [
+                    BatchRNN(input_size=1728, hidden_size=256, bidirectional=True, batch_norm=True),
+                    BatchRNN(input_size=512, hidden_size=256, bidirectional=True, batch_norm=True),
+                    ]
+            self.rnn = nn.Sequential(*rnnList)
+
+        def forward(self, sample):
+            ## sample shape Batch x Channel x Time x H x w
+            ## output of conv shape: Batch x Channel x time x H x w
+            output = self.conv(sample)
+            ## flatten: batch x time x 1728
+            output = output.view(output.size(0), output.size(2), -1)
+
+            ## transpose time x batch x 1728
+            output = output.transpose(1, 0)
+            try:
+                assert output.size(-1) == 1728
+            except:
+                __import__('ipdb')
+            output = self.rnn(output)
+            ## output of rnn time x batch x 512
+            output = self.dense(output)
+            ## output of dense time x batch x nclasses
+            output = output.transpose(1, 0)
+            ## output batch x time x nclasses
+            output = self.inference_softmax(output)
+
+            return output
+
+
+
+
+
+
+try:
+    exec(open(os.path.join(os.getenv("expPath"), 'networks_SpeechModule.py')).read())
+except:
+    #__import__('ipdb').set_trace()
+    class SpeechModule(nn.Module):
         def __init__(self, numClasses=11):
-            super(AuFCN, self).__init__()
+            super(SpeechModule, self).__init__()
             modList = list()
             modList = [
                     nn.Conv3d(3, 32, kernel_size=(3, 5, 5), stride=(2, 2, 2), padding=(1, 2, 2)),
@@ -250,6 +317,24 @@ except:
             output = self.inference_softmax(output)
 
             return output
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class Tanh_rescale(Module):

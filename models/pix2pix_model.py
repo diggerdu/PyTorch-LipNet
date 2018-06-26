@@ -1,15 +1,19 @@
-import numpy as np
-import torch
 import os
 from collections import OrderedDict
+
+import numpy as np
+import torch
 from torch.autograd import Variable
+from warpctc_pytorch import CTCLoss
+
 import util.util as util
 from util.image_pool import ImagePool
-from .base_model import BaseModel
+
 from . import networks
-from warpctc_pytorch import CTCLoss
-from .decoder import BeamCTCDecoder, GreedyDecoder
 from .adamw import AdamW
+from .base_model import BaseModel
+from .decoder import BeamCTCDecoder, GreedyDecoder
+
 
 def checkInterVarGrad(grad):
     import numpy as np
@@ -245,3 +249,54 @@ class Pix2PixModel(BaseModel):
             param_group['lr'] = lr
         print('update learning rate: %f -> %f' % (self.old_lr, lr))
         self.old_lr = lr
+    def visSaliency(self):
+        def hookFunction(module, grad_in, grad_out):
+         self.gradients = grad_in
+
+        def get_positive_negative_saliency(gradient):
+         pos_saliency = (np.maximum(0, gradient) / gradient.max())
+         neg_saliency = (np.maximum(0, -gradient) / -gradient.min())
+         return pos_saliency, neg_saliency
+
+        self.netG.zero_grad()
+        input_ = Variable(self.input_A, requires_grad=True)
+        output_ = self.netG.forward(input_)
+        self.netG._modules['module']._modules['conv']._modules['0'].register_backward_hook(hookFunction)
+        self.forward()
+        one_hot = torch.FloatTensor(output_.size()).zero_()
+        classId = 5
+        one_hot[::,::,classId] = 1
+        output_.backward(gradient=one_hot)
+        gradArr = np.sum(input_.grad.data.cpu().numpy()[0], axis=0)
+        posS, negS = get_positive_negative_saliency(gradArr)
+        from skimage import io, transform
+
+        import matplotlib
+        import matplotlib.pyplot as plt
+        plt.switch_backend('agg')
+        import matplotlib.colors as mcolors
+        def transparent_cmap(cmap, N=255):
+         "Copy colormap and set alpha values"
+         mycmap = cmap
+         mycmap._init()
+         mycmap._lut[:,-1] = np.linspace(0, 0.8, N+4)
+         return mycmap
+        mycmap = transparent_cmap(plt.cm.spring)
+        def plotHeat(oriImg, posS, index):
+         y, x = np.mgrid[0:posS.shape[0], 0:posS.shape[1]]
+         fig, ax = plt.subplots(1, 1)
+         ax.imshow(oriImg)
+         cb = ax.contourf(x, y, posS / np.max(posS), 15, cmap=mycmap)
+         plt.colorbar(cb)
+         plt.savefig('heat/miserab1e_{}.png'.format(index))
+
+        os.system('rm -rf heat heat.7z')
+        os.system('mkdir heat')
+#posS = np.clip(posS, 0., 0.1) * 4.9999
+        posS = np.clip(posS, 0., 0.999) 
+        pos = np.log1p(posS)
+        for i in range(posS.shape[0]):
+         oriImg = transform.resize(io.imread(os.path.join(self.inputInfo[0], os.listdir(self.inputInfo[0])[i])), posS[0].shape)
+         plotHeat(oriImg, posS[i], i)
+
+        os.system("7z a heat.7z heat")

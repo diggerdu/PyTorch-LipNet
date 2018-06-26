@@ -1,9 +1,12 @@
+from collections import defaultdict
+
 import torch
 import torch.nn as nn
+from torch.autograd import Function, Variable
 from torch.nn import Parameter
-from torch.autograd import Variable, Function
-from collections import defaultdict
+
 import graphviz
+from graphviz import Digraph
 
 """
 This is a rather distorted implementation of graph visualization in PyTorch.
@@ -126,9 +129,6 @@ def save_visualization(name, format='svg'):
             g.edge(str(cid), str(oid))
     g.render(name)
 
-from graphviz import Digraph
-import torch
-from torch.autograd import Variable
 
 
 def make_dot(var, params):

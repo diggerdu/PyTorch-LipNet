@@ -7,9 +7,10 @@
 
 import os
 import os.path
+
 import librosa
-import soundfile as sf
 import numpy as np
+import soundfile as sf
 
 AUDIO_EXTENSIONS = [
     '.wav',

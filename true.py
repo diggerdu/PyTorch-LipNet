@@ -1,11 +1,13 @@
+import sys
 import time
+
+import numpy as np
 import torch.backends.cudnn as cudnn
-from options.train_options import TrainOptions
+from tqdm import tqdm
+
 from data.data_loader import CreateDataLoader
 from models.models import create_model
-import sys
-import numpy as np
-from tqdm import tqdm
+from options.train_options import TrainOptions
 
 cudnn.benchmark = True
 

@@ -1,9 +1,11 @@
-import numpy as np
-import soundfile as sf
-import SharedArray as sa
+import gc
 import os
 from functools import reduce
-import gc
+
+import numpy as np
+import soundfile as sf
+
+import SharedArray as sa
 
 stereoPath = '/seagate2t/rec/stereo/' 
 monoPath = '/seagate2t/rec/mono/' 
@@ -48,5 +50,3 @@ def prepareData(monoPath=monoPath, stereoPath=stereoPath):
 
 if __name__ == '__main__':
     prepareData()
-
-

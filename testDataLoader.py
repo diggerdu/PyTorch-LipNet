@@ -1,11 +1,14 @@
+import sys
 import time
+
+import numpy as np
 import torch.backends.cudnn as cudnn
-from options.train_options import TrainOptions
+from torchsummary import summary
+from tqdm import tqdm
+
 from data.data_loader import CreateDataLoader
 from models.models import create_model
-import sys
-import numpy as np
-from tqdm import tqdm
+from options.train_options import TrainOptions
 
 cudnn.benchmark = True
 
@@ -20,14 +23,14 @@ print('#training images = %d' % dataset_size)
 print('#testing images = %d' % len(testDataLoader))
 
 model = create_model(opt)
-from torchsummary import summary
-summary(model.netG, input_size=(3,150, 100, 50))
+#summary(model.netG, input_size=(3,150, 100, 50))
 
 
 initEpoch = model.epoch + 1
 for epoch in range(initEpoch, opt.niter):
     lossList = []
     for i, data in tqdm(enumerate(dataset), total=len(dataset)):
+        __import__('ipdb').set_trace()
     #for i, data in enumerate(dataset):
         model.set_input(data)
         model.optimize_parameters()
@@ -38,7 +41,7 @@ for epoch in range(initEpoch, opt.niter):
     model.annealLR(loss)
     model.epoch += 1
     print('epoch {}, loss is {}'.format(epoch, loss))
-    if epoch % 5 == 2:
+    if epoch % 5 == 2 or True: 
         flag = False
         if loss < .5:
             flag = True
@@ -74,5 +77,3 @@ for epoch in range(initEpoch, opt.niter):
         print('#####TrainingSet epoch {}, wer is {}, cer is {}'.format(epoch, wer, cer))
         print('############################')
         model.save()
-
-    
